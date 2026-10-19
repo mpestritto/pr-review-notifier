@@ -386,6 +386,11 @@ def plan_queries(cfg: Config, me: str) -> list[str]:
             queries.append(f"{SEARCH_BASE} {org_scope} {REVIEW_REQUESTED_ME} {' '.join(narrowing)}".strip())
             continue
 
+        if f.has_replies_to_me and cfg.settings.reply_tracking:
+            # Only PRs I've commented on, reviewed, or been mentioned in can have replies to me. Those come
+            # from the involves:/reviewed-by: searches below, so don't scan every open PR in the repos.
+            continue
+
         authors = sorted(cfg.resolve_people(f.authors, me)) if f.authors else []
         prefix = f"{SEARCH_BASE} {' '.join(narrowing)}".strip()
         if authors:

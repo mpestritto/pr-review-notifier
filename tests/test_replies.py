@@ -238,3 +238,13 @@ def test_tui_shows_marker_and_detail(cfg):
             status = str(tui.query_one("#status", Static).render())
             assert "💬" not in status                          # not part of any count
     asyncio.run(go())
+
+
+def test_replies_section_does_not_scan_every_open_pr(cfg):
+    """Regression: the Replies to Me section has no author filter, but must not trigger a repo-wide search."""
+    qs = plan_queries(cfg, ME)
+    narrowing = ("author:", "review-requested:", "involves:", "reviewed-by:")
+    assert all(any(n in q for n in narrowing) for q in qs), qs
+    # a section that really has no narrowing still gets a repo scan
+    cfg.sections.append(parse('defaults: {repos: [acme/web]}\nsections: [{name: Everything}]').sections[0])
+    assert any("repo:acme/web" in q and "author:" not in q for q in plan_queries(cfg, ME))
