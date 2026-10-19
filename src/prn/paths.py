@@ -71,6 +71,11 @@ def seen_path() -> Path:
     return state_dir() / "seen.json"
 
 
+def replies_path() -> Path:
+    """Cached reply analysis per PR, refreshed only when the PR's updatedAt changes."""
+    return state_dir() / "replies.json"
+
+
 def lock_path() -> Path:
     return state_dir() / "poll.lock"
 

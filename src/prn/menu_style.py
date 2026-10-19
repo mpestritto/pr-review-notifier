@@ -21,12 +21,13 @@ Segment = tuple[str, str]  # (text, role)
 
 CI_ROLE = {"success": "green", "failure": "red", "pending": "orange"}
 REVIEW_MARK = {"approved": ("◆", "green"), "changes_requested": ("◆", "red")}
-LEGEND = "✓ ✗ ● CI   ◆ approved / changes requested"
+LEGEND = "✓ ✗ ● CI   ◆ approved / changes requested   💬 reply"
+REPLY_MARK = "💬"
 MUTED = "muted"
 MUTED_ALPHA = 0.5
 
 
-def pr_segments(pr: PR, max_title: int, read: bool = False) -> list[Segment]:
+def pr_segments(pr: PR, max_title: int, read: bool = False, reply: bool = False) -> list[Segment]:
     """`read`: I've opened it and nothing new has happened since, so every segment is muted (same hue, faded)."""
     title_role = "dim" if pr.is_draft else "normal"
     mark, mark_role = REVIEW_MARK.get(pr.review_decision, (" ", "normal"))
@@ -39,7 +40,12 @@ def pr_segments(pr: PR, max_title: int, read: bool = False) -> list[Segment]:
         (fmt.truncate(pr.title, max_title) + ("  (draft)" if pr.is_draft else ""), title_role),
         (f"  · {pr.author}", "dim"),
     ]
-    return [(text, f"{role} {MUTED}") for text, role in segments] if read else segments
+    if reply:  # unread reply: never muted, so it stands out even on a row I've read
+        tail = [(f"  {REPLY_MARK}" + (f" {pr.reply_count}" if pr.reply_count > 1 else ""), "normal")]
+    else:
+        tail = []
+    body = [(text, f"{role} {MUTED}") for text, role in segments] if read else segments
+    return body + tail
 
 
 def plain(segments: Iterable[Segment]) -> str:

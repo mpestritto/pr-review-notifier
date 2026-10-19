@@ -81,5 +81,5 @@ def deliver(notifications: list[Notification], notifier: str) -> int:
         )
         return 1
     for n in notifications:
-        send(n.title, n.subtitle, n.message, url=n.pr.url, group=n.pr.key, notifier=notifier)
+        send(n.title, n.subtitle, n.message, url=n.url or n.pr.url, group=n.pr.key, notifier=notifier)
     return len(notifications)

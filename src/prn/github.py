@@ -394,6 +394,11 @@ def plan_queries(cfg: Config, me: str) -> list[str]:
             repos = cfg.section_repos(s)
             queries.extend(_chunk_terms(prefix, [f"repo:{r}" for r in repos]))
 
+    # PRs where I've commented, reviewed, or been mentioned, for sections that look for replies to me.
+    if cfg.settings.reply_tracking and any(s.filters.has_replies_to_me for s in cfg.sections):
+        queries.append(f"{SEARCH_BASE} {org_scope} involves:{me}")
+        queries.append(f"{SEARCH_BASE} {org_scope} reviewed-by:{me}")
+
     # De-duplicate, then drop queries that are strictly narrower than another one.
     seen, uniq = set(), []
     for q in queries:

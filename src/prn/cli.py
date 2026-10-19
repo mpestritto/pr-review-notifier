@@ -108,7 +108,9 @@ def list_cmd(
             "sections": [{"name": s.name, "count": len(s.prs),
                           "prs": [{"repo": p.repo, "number": p.number, "title": p.title, "url": p.url,
                                    "author": p.author, "draft": p.is_draft, "review_decision": p.review_decision,
-                                   "ci": p.ci, "approvals": p.approvals(), "updated_at": p.updated_at}
+                                   "ci": p.ci, "approvals": p.approvals(), "updated_at": p.updated_at,
+                                   "replies": {"count": p.reply_count, "latest_author": p.latest_reply_author,
+                                               "latest_kind": p.latest_reply_kind, "latest_url": p.latest_reply_url}}
                                   for p in s.prs]} for s in secs],
         }
         typer.echo(json.dumps(out, indent=2))
@@ -130,7 +132,9 @@ def list_cmd(
         t.add_column(style="dim", no_wrap=True)
         for p in s.prs:
             t.add_row(fmt.CI_GLYPH.get(p.ci, " "), fmt.pr_label(p),
-                      ("[dim]" + p.title + "[/dim]") if p.is_draft else p.title, f"@{p.author}", fmt.ago(p.updated_at))
+                      (("[dim]" + p.title + "[/dim]") if p.is_draft else p.title)
+                      + (f"  💬 {p.reply_count}" if p.reply_count else ""),
+                      f"@{p.author}", fmt.ago(p.updated_at))
         if not s.prs:
             t.add_row("", "[dim](empty)[/dim]", "", "", "")
         console.print()
@@ -242,6 +246,9 @@ def sections_add(
     max_approvals: Optional[int] = typer.Option(None),
     has_reviews_from_others: Optional[bool] = typer.Option(None, "--has-reviews-from-others/--no-reviews-from-others"),
     has_reviews: Optional[bool] = typer.Option(None, "--has-reviews/--no-reviews", help="Anyone but the author reviewed"),
+    has_replies_to_me: Optional[bool] = typer.Option(
+        None, "--has-replies-to-me/--no-replies-to-me",
+        help="Someone replied in my review thread or @mentioned me, and I haven't posted since"),
     awaiting_my_review: Optional[bool] = typer.Option(
         None, "--awaiting-my-review/--not-awaiting-my-review",
         help="Not reviewed by me yet, or my review was re-requested directly"),
@@ -278,7 +285,8 @@ def sections_add(
     for key, val in (("review_requested", review_requested), ("review_decision", review_decision),
                      ("ci", ci), ("updated_within_days", updated_within_days),
                      ("has_reviews_from_others", has_reviews_from_others), ("has_reviews", has_reviews),
-                     ("awaiting_my_review", awaiting_my_review), ("draft", draft)):
+                     ("awaiting_my_review", awaiting_my_review), ("has_replies_to_me", has_replies_to_me),
+                     ("draft", draft)):
         if val is not None:
             filters[key] = val
     if my_review:

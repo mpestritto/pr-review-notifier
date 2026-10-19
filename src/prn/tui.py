@@ -15,7 +15,7 @@ from textual.widgets import Footer, Input, OptionList, Static
 from textual.widgets.option_list import Option
 
 from . import config as config_mod
-from . import fmt, poller, store
+from . import fmt, poller, replies, store
 from .models import PR
 
 CI_STYLE = {"success": "green", "failure": "red", "pending": "yellow", "none": "dim"}
@@ -54,6 +54,7 @@ class PRNTui(App):
         self._unread: set[str] = set()
         self._seen_mtime = -1.0
         self._read_tracking = True
+        self._reply_tracking = True
         self._filter = ""
         self._refreshing = False
 
@@ -81,7 +82,8 @@ class PRNTui(App):
             return
         self._mtime, self._seen_mtime = mtime, seen_mtime
         try:
-            tracking = config_mod.load().settings.read_tracking
+            settings = config_mod.load().settings
+            tracking, self._reply_tracking = settings.read_tracking, settings.reply_tracking
         except config_mod.ConfigError:
             tracking = True
         if tracking != self._read_tracking:
@@ -143,6 +145,9 @@ class PRNTui(App):
                     (f"  @{pr.author}", styles[4]),
                     (f"  {fmt.ago(pr.updated_at)}", styles[4]),
                 )
+                if self._reply_tracking and store.has_unread_reply(seen, pr, self._read_tracking):
+                    # 💬 for an unread reply. Never dimmed, and not part of any count.
+                    line.append(f"  💬" + (f" {pr.reply_count}" if pr.reply_count > 1 else ""), style="bold")
                 ol.add_option(Option(line, id=pr.key))
                 if first_pr_index is None:
                     first_pr_index = ol.option_count - 1
@@ -223,6 +228,11 @@ class PRNTui(App):
                 t.append(f"  team {team}\n")
         if pr.labels:
             t.append("\nLabels  ", style="bold"); t.append(", ".join(pr.labels) + "\n")
+        if self._reply_tracking and pr.reply_count:
+            t.append("\n💬 Replies to you\n", style="bold")
+            t.append(f"  {replies.describe(pr)}, {fmt.ago(pr.latest_reply_at)}\n")
+            if pr.latest_reply_url:
+                t.append(f"  {pr.latest_reply_url}\n", style="underline dim")
         t.append(f"\nUpdated {fmt.ago(pr.updated_at)} · {pr.comment_count} comments\n", style="dim")
         t.append(pr.url, style="underline dim")
         detail.update(t)

@@ -6,6 +6,7 @@ import fcntl
 import json
 import os
 import time
+from datetime import datetime
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -162,6 +163,20 @@ def _seen_entry(pr: PR, section: str, me: str) -> dict:
 def is_unread(seen: dict[str, dict], pr: PR, section: str, me: str) -> bool:
     entry = seen.get(pr.key)
     return entry is None or has_new_activity(entry, {**pr.activity(me), "section": section})
+
+
+def has_unread_reply(seen: dict[str, dict], pr: PR, read_tracking: bool = True) -> bool:
+    """Show the 💬 marker? Yes while there's an unanswered reply I haven't opened the PR since.
+    Without read tracking there's nothing to "open", so it shows until I post again."""
+    if not pr.reply_count or not pr.latest_reply_at:
+        return False
+    if not read_tracking:
+        return True
+    entry = seen.get(pr.key)
+    if entry is None:
+        return True
+    reply_at = datetime.fromisoformat(pr.latest_reply_at.replace("Z", "+00:00")).timestamp()
+    return reply_at > entry.get("at", 0)
 
 
 def mark_read(items: list[tuple[PR, str]], me: str, live_keys: Optional[set[str]] = None) -> None:

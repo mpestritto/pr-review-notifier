@@ -7,15 +7,17 @@ from typing import Optional
 
 from .config import Config
 from .engine import SectionResult
+from . import replies as replies_mod
 from .models import PR
 
 NEW_IN_SECTION = "new_in_section"
 RE_REVIEW = "re_review_requested"
 MY_PR_STATUS = "my_pr_status"
 CI_STATUS = "ci_status"
+REPLY = "replies"
 
 # Higher number = more important; used to pick the notification title when a PR has several events.
-PRIORITY = {RE_REVIEW: 4, MY_PR_STATUS: 3, CI_STATUS: 2, NEW_IN_SECTION: 1}
+PRIORITY = {RE_REVIEW: 5, REPLY: 4, MY_PR_STATUS: 3, CI_STATUS: 2, NEW_IN_SECTION: 1}
 
 
 @dataclass
@@ -24,6 +26,7 @@ class Event:
     pr: PR
     detail: str
     section: Optional[str] = None
+    url: Optional[str] = None      # where clicking the notification goes (defaults to the PR)
 
 
 @dataclass
@@ -33,6 +36,7 @@ class Notification:
     subtitle: str
     message: str
     kinds: list[str] = field(default_factory=list)
+    url: str = ""                  # opened when the notification is clicked
 
 
 def snapshot_entry(pr: PR, section: Optional[str], me: str) -> dict:
@@ -49,6 +53,7 @@ def snapshot_entry(pr: PR, section: Optional[str], me: str) -> dict:
         "requested_me": pr.requested_me_directly(me_l) or pr.requested_via_team(me_l) or pr.review_requested_from_me,
         "has_reviewed": pr.has_reviewed(me_l),
         "my_review_state": pr.my_review_state(me_l),
+        "latest_reply_at": pr.latest_reply_at,
     }
 
 
@@ -85,6 +90,12 @@ def diff(prev: dict[str, dict], results: list[SectionResult], all_prs: list[PR],
         if (toggles.new_in_section and sec in notify_sections and not moved_by_me
                 and (old is None or old.get("section") != sec)):
             events.append(Event(NEW_IN_SECTION, pr, f"New in {sec}", sec))
+
+        # 1b. A new reply in one of my review threads, or a new @mention (any PR, mine or not).
+        #     Snapshots from before reply tracking have no `latest_reply_at`: treat those as a baseline.
+        if (toggles.replies and old is not None and "latest_reply_at" in old and pr.reply_count
+                and cur["latest_reply_at"] > old["latest_reply_at"]):
+            events.append(Event(REPLY, pr, replies_mod.describe(pr), sec, url=pr.latest_reply_url or None))
 
         if not cur["is_mine"]:
             # 2. Re-review requested: I'd reviewed, and I'm (newly) requested again
@@ -140,5 +151,6 @@ def to_notifications(events: list[Event]) -> list[Notification]:
             subtitle=f"{pr.short_repo}#{pr.number} · @{pr.author}",
             message=pr.title + (f"\n{' · '.join(details[1:])}" if len(details) > 1 else ""),
             kinds=[e.kind for e in evs],
+            url=next((e.url for e in evs if e.url), pr.url),
         ))
     return out

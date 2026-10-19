@@ -29,6 +29,11 @@ class Clock:
         return self.t
 
 
+def pr_calls(fake):
+    """Search/check/refetch counts, leaving out the separate reply-analysis requests."""
+    return {k: v for k, v in fake.calls.items() if k != "replies"}
+
+
 class FakeGitHub:
     """respx side effect answering viewer, full searches, combined change checks, and nodes(ids)."""
 
@@ -38,7 +43,7 @@ class FakeGitHub:
         self.delay = delay
         self.remaining = 4999
         self.overflow = False
-        self.calls = {"search": 0, "check": 0, "nodes": 0}
+        self.calls = {"search": 0, "check": 0, "nodes": 0, "replies": 0}
         self.refetched: list[list[str]] = []
         self._lock = threading.Lock()
         self.active = self.max_active = 0
@@ -68,6 +73,11 @@ class FakeGitHub:
             rl = {"remaining": self.remaining, "resetAt": "x", "cost": 1}
             if query == VIEWER_QUERY:
                 return httpx.Response(200, json={"data": {"viewer": {"login": ME}}})
+            if "reviewThreads" in query:   # reply analysis (replies.py): counted separately from PR refetches
+                self.calls["replies"] += 1
+                return httpx.Response(200, json={"data": {"rateLimit": rl, "nodes": [
+                    {"id": i, "comments": {"nodes": []}, "reviews": {"nodes": []}, "reviewThreads": {"nodes": []}}
+                    for i in v["ids"]]}})
             if "nodes(ids" in query:
                 self.calls["nodes"] += 1
                 self.refetched.append(list(v["ids"]))
@@ -149,7 +159,7 @@ def test_aggressive_checks_cheaply_until_something_changes(sent):
     clock.t += 15
     res, wait = p.tick(cfg)
     assert res.kind == "check" and res.inbox is None and wait == 15
-    assert fake.calls == {"search": 0, "check": 1, "nodes": 0}
+    assert pr_calls(fake) == {"search": 0, "check": 1, "nodes": 0}
     assert res.points == 1
 
     # My CI fails: only that PR is refetched, and the notification goes out
@@ -158,7 +168,7 @@ def test_aggressive_checks_cheaply_until_something_changes(sent):
     clock.t += 15
     res, _ = p.tick(cfg)
     assert res.kind == "check" and res.changed == 1
-    assert fake.calls == {"search": 0, "check": 1, "nodes": 1}
+    assert pr_calls(fake) == {"search": 0, "check": 1, "nodes": 1}
     assert fake.refetched == [["PR_10"]]
     assert [n.title for n in res.notifications] == ["CI failed"]
     assert len(sent) == 1

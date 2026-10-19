@@ -13,7 +13,7 @@ from typing import Callable, Optional
 
 from . import config as config_mod
 from . import events as events_mod
-from . import notify, store
+from . import notify, replies, store
 from .config import Config
 from .engine import SectionResult, evaluate
 from .github import (AuthError, Fingerprint, Fetched, GitHubClient, allowed_repos, build_prs, check_all,
@@ -83,6 +83,7 @@ def poll_once(
         try:
             me = _viewer(client)
             prs = build_prs(fetch_all(client, plan_queries(cfg, me)), cfg)
+            replies.attach(client, prs, cfg, me)
         except Exception as exc:
             store.write_inbox_error(str(exc))
             raise
@@ -184,6 +185,7 @@ class Poller:
             fetched.nodes = {k: n for k, n in fetched.nodes.items()
                              if n["repository"]["nameWithOwner"].lower() in allowed}
             prs = build_prs(fetched, cfg)
+            replies.attach(self.client, prs, cfg, me)
             inbox, notifications, seeded = _publish(cfg, me, prs, True, _next_poll_at(cfg))
         self._queries, self._fetched, self._fingerprints = queries, fetched, fingerprints
         self._unfetchable = set()
@@ -231,6 +233,7 @@ class Poller:
             known.update(refetched)
             self._unfetchable |= {pid for pid in changed if pid not in refetched}
             prs = build_prs(self._fetched, cfg)
+            replies.attach(self.client, prs, cfg, me)
             inbox, notifications, seeded = _publish(cfg, me, prs, True, _next_poll_at(cfg))
 
         dur, points = time.time() - start, self.client.points_used - points_before

@@ -57,6 +57,12 @@ class PR:
     requested_users: list[str] = field(default_factory=list)       # lowercase logins
     requested_teams: list[str] = field(default_factory=list)       # org/slug
     review_requested_from_me: bool = False   # GitHub's `review-requested:@me` (direct OR via my team)
+    # Unanswered replies to me (see replies.py). Filled in after the search, from a cached second query.
+    reply_count: int = 0
+    latest_reply_at: str = ""
+    latest_reply_author: str = ""
+    latest_reply_kind: str = ""              # reply | mention
+    latest_reply_url: str = ""
 
     # ---------------------------------------------------------- derived helpers
 

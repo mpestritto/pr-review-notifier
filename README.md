@@ -17,6 +17,7 @@ It's modeled on Graphite's inbox, and everything runs locally on your Mac.
 - [Uninstall](#uninstall)
 - [Using it](#using-it)
 - [Read and unread](#read-and-unread)
+- [Replies to you](#replies-to-you)
 - [The starter sections](#the-starter-sections)
 - [Config reference](#config-reference)
 - [Notifications](#notifications)
@@ -48,7 +49,7 @@ cd pr-review-notifier
 4. **Runs the setup wizard** (`prn setup`), which creates `./config.yaml` from `config.example.yaml`. It asks for:
    - **Repos to watch**, as `owner/name` separated by commas. It checks that you can access each one.
    - **Teammates.** It shows the people whose PRs you've reviewed most in those repos over the last 90 days. Pick them by number, type usernames, or both.
-   - **Which of the 7 starter sections to keep.** See [The starter sections](#the-starter-sections).
+   - **Which of the 8 starter sections to keep.** See [The starter sections](#the-starter-sections).
    - **Polling strategy** (conservative or aggressive, see [Polling strategies](#polling-strategies)), the **full poll interval** (default 300 seconds), and which notification types you want.
 5. **Fetches your PRs.** The first poll records the current state silently, so you don't get a burst of notifications about PRs that already exist.
 6. **Builds the PR Review Notifier app** with `prn app install`, so notifications say "PR Review Notifier" instead of "Python". See [Why there's an app](#why-theres-a-pr-review-notifierapp).
@@ -114,13 +115,13 @@ The dropdown contains:
 PR Review Notifier
 ───────────────────────────────
 Teammates Need Review (2)
-   ✓   app-workflow#123  Add order export…   · teammate-one
+   ✓   app-workflow#123  Add order export…   · teammate-one  💬
    ● ◆ infra-gitops#45   Bump chart version… · teammate-two
 ───────────────────────────────
 My Draft PRs (1)
    ✗   api-llm#9  WIP: retry logic  (draft)  · you
 ───────────────────────────────
-✓ ✗ ● CI   ◆ approved / changes requested
+✓ ✗ ● CI   ◆ approved / changes requested   💬 reply
 ───────────────────────────────
 Refresh now                ⌘R
 Open inbox (Terminal)
@@ -134,6 +135,7 @@ Quit PR Review Notifier    ⌘Q
 - **Review status:** green ◆ approved, red ◆ changes requested.
 - **Drafts:** shown dimmed and labelled "(draft)".
 - **Read PRs:** muted until there's new activity. See [Read and unread](#read-and-unread).
+- **💬:** someone replied to your comment or @mentioned you, and you haven't opened the PR since. See [Replies to you](#replies-to-you). It's never counted in the number on the icon.
 - **Click a PR** to open it on GitHub and mark it read.
 - **Refresh now** runs a full poll immediately. **Open inbox (Terminal)** opens the interactive inbox in Terminal. **Edit config…** opens `config.yaml` in your default text editor.
 - **The status line** shows when the inbox was last updated and when the next poll is. With `poll_strategy: aggressive` it reads `Updated 10:42 AM · live, checked 6s ago` instead.
@@ -142,7 +144,7 @@ Empty sections are hidden (`hide_empty_sections`). Sections with `display: false
 
 ### The terminal inbox
 
-Run `prn` (or `pr-review-notifier`). Sections and PRs are on the left, with PRs you've already read muted. The selected PR's details are on the right: reviews, requested reviewers, approvals, CI, labels, and your own review state. The view updates by itself whenever the menu bar app polls.
+Run `prn` (or `pr-review-notifier`). Sections and PRs are on the left, with PRs you've already read muted. The selected PR's details are on the right: reviews, requested reviewers, approvals, CI, labels, your own review state, and any replies to you (with a link to the comment). Rows with an unseen reply end in 💬. The view updates by itself whenever the menu bar app polls.
 
 | Key | Action |
 |---|---|
@@ -174,6 +176,35 @@ Once you've looked at a PR, it fades so new activity stands out. This works in b
 **Don't want it?** Set `read_tracking: false` under `settings`. Every row then stays at full brightness, opening a PR doesn't mark it read, and `m`/`M` and the "new" count go away. Both views pick up the change within a few seconds. Turning it back on keeps your earlier read state.
 
 Read state lives in `~/.local/state/prn/seen.json`. An entry is removed once its PR has left the inbox for 30 days. If the PR comes back after that, it shows as unread.
+
+### Replies to you
+
+If you ask questions on PRs, PR Review Notifier tells you when someone answers. A **💬** appears at the end of the row in both the TUI and the menu bar dropdown. It never counts toward the menu bar number or the TUI's "need attention" and "new" counts.
+
+**What counts as a reply:**
+
+- **Review thread replies.** Someone else comments in an inline code-review thread you've commented in (whether or not you started it), after your latest comment in that thread.
+- **@mentions.** Someone else @mentions you in a comment, review, or review thread, after your latest activity anywhere on that PR.
+
+Once you post again (in that thread, or anywhere on the PR for a mention), the reply counts as answered.
+
+**When the 💬 shows:**
+
+- **It shows while there's an answer you haven't seen yet.** It goes away when you open the PR from the TUI or menu bar, or mark it read with `m`. It comes back if another reply arrives.
+- **If more than one reply is waiting,** a count follows the marker, for example `💬 2`.
+- **With `read_tracking: false`** there's nothing to open, so the 💬 stays until you answer.
+
+**Where replies show up:**
+
+- **PRs already in a section** keep their place and get the 💬.
+- **The "Replies to Me" section** (last in the starter config) catches open PRs in your repos with unanswered replies that no other section claims. Examples: a teammate's PR you commented on that's already approved, or a PR from someone outside your teammates group.
+- **The TUI's detail panel** shows who replied, how long ago, and a link straight to the comment.
+
+**Notifications:** set `settings.notifications.replies: true` to get one when a new reply or mention arrives. It's off by default. The notification reads "@alice replied to your comment" or "@alice mentioned you", and clicking it opens that comment.
+
+**Turning it off:** `settings.reply_tracking: false` removes the 💬, the extra fetch, and the searches behind the Replies to Me section.
+
+**GitHub cost:** reading review threads takes a second, cached request. It only runs for PRs whose activity changed since the last poll, so after the first poll it's usually zero or a few PRs.
 
 ### Commands
 
@@ -211,6 +242,7 @@ Every PR is checked against the sections from top to bottom, and it appears only
 | 5 | **My Approved PRs** | Your PRs that GitHub considers approved | ✓ | |
 | 6 | **My Open PRs** | Your other non-draft PRs | | |
 | 7 | **My Draft PRs** | Your drafts | | |
+| 8 | **Replies to Me** | Open PRs where someone answered you in a review thread or @mentioned you, and you haven't posted since. Only PRs no other section claims | | |
 
 How a teammate's PR moves through the sections:
 
@@ -233,6 +265,7 @@ settings:
   hide_empty_sections: true        # in the menu bar dropdown
   max_title_length: 50             # PR title truncation in the dropdown
   read_tracking: true              # fade PRs you've opened until there's new activity; false turns it off
+  reply_tracking: true             # 💬 when someone replies in your review threads or @mentions you
   ignore_bot_reviews: false        # true: bot reviews don't count for has_reviews / has_reviews_from_others
   ignored_reviewers: [coderabbitai]  # these reviewers never count toward approvals or "has reviews"
   notifications:                   # turn each notification type on or off
@@ -240,6 +273,7 @@ settings:
     re_review_requested: true
     my_pr_status: true
     ci_status: true
+    replies: false                 # a new reply / @mention to you (see "Replies to you")
 
 defaults:
   repos: [your-org/repo-one, your-org/repo-two]   # used by every section without its own `repos:`
@@ -305,6 +339,7 @@ All filters in a section must match (AND). Inside a list, any one item can match
 | `conflicts` | `true` / `false` | GitHub reports merge conflicts with the base branch. While GitHub is still computing, this counts as no conflicts |
 | `ready_to_merge` | `true` / `false` | GitHub's merge state is clean: branch protection is satisfied (required reviews and required checks such as policy-bot), every other check passed, and there are no conflicts. While GitHub is still computing, this counts as not ready |
 | `awaiting_approval_from` | usernames | Any of these reviewers hasn't approved the PR's **latest commit**, for example `[coderabbitai]` while it re-reviews a new push. Not affected by `ignored_reviewers` |
+| `has_replies_to_me` | `true` / `false` | Someone replied in a review thread you're in, or @mentioned you, and you haven't posted since. Needs `reply_tracking`. Also makes prn search for open PRs you've commented on or been mentioned in |
 | `approved_by` | usernames | Any of these reviewers has approved the PR's **latest commit**. An approval on an older commit doesn't count. Not affected by `ignored_reviewers` |
 | `updated_within_days` | number | Updated within the last N days |
 
@@ -325,6 +360,7 @@ Unknown keys and bad values are rejected with the exact location of the problem.
 | `--has-reviews` / `--no-reviews` | `has_reviews` |
 | `--has-reviews-from-others` / `--no-reviews-from-others` | `has_reviews_from_others` |
 | `--awaiting-my-review` / `--not-awaiting-my-review` | `awaiting_my_review` |
+| `--has-replies-to-me` / `--no-replies-to-me` | `has_replies_to_me` |
 | `--draft` / `--not-draft` | `draft` |
 | `--labels a,b` / `--exclude-labels a,b` | `labels` / `exclude_labels` |
 | `--ci failure` | `ci` |
@@ -349,6 +385,7 @@ Notifications come from **PR Review Notifier**, with its own icon. Clicking one 
 | Re-review requested | You'd already reviewed, and you've been requested again |
 | My PR status | Your PR's review decision changes, or someone else leaves a review or comment. Your own replies don't count |
 | CI | Checks on your PR finish as passed or failed |
+| Replies | Someone replies in a review thread you're in, or @mentions you. **Off by default:** set `notifications.replies: true`. Clicking opens the comment itself |
 
 - **One notification per PR:** if several events hit the same PR in one poll, they're combined.
 - **Busy polls:** if more than 5 PRs change at once, you get a single summary instead.
@@ -379,6 +416,7 @@ macOS labels notifications, Login Items, and Activity Monitor entries with the a
   | `~/.local/state/prn/inbox.json` | The rendered inbox |
   | `~/.local/state/prn/snapshot.json` | Last-seen PR state, used to detect changes |
 | `~/.local/state/prn/seen.json` | Read/unread state: what each PR looked like when you last opened it |
+| `~/.local/state/prn/replies.json` | Cached reply analysis per PR, refreshed only when the PR changes |
   | `~/.local/state/prn/prn.log` | App log (`prn daemon logs`) |
   | `~/.local/state/prn/menubar.out.log` | Output from the menu bar process (startup errors land here) |
   | `~/Library/LaunchAgents/com.prn.menubar.plist` | The login item |
@@ -419,3 +457,4 @@ uv run pytest
 6. Review a teammate's PR without approving it, then choose **Refresh now**. It should move to Reviewed Not Approved by Me, with no notification.
 7. Have a teammate re-request your review. Within one poll, you should get a clickable notification, and the PR should move back to Teammates Need Review.
 8. Change `poll_interval_seconds` in `config.yaml` and save. Within about 3 seconds the dropdown should show "Config changed, refreshing…" or a new "Last updated" time.
+9. Ask a question in a review thread on a teammate's PR, and have them reply. Within one poll the row should end in 💬. With `notifications.replies: true` you should also get "@them replied to your comment". Opening the PR clears the 💬, and the badge number shouldn't change.

@@ -68,6 +68,7 @@ class Filters(_Strict):
     ready_to_merge: Optional[bool] = None       # GitHub would let you merge now: required checks + all checks pass, no conflicts
     awaiting_approval_from: list[str] = Field(default_factory=list)  # ANY of these hasn't approved the latest commit
     approved_by: list[str] = Field(default_factory=list)  # ANY of these has approved the latest commit
+    has_replies_to_me: Optional[bool] = None    # unanswered thread replies / @mentions (needs reply_tracking)
     updated_within_days: Optional[int] = Field(default=None, ge=1)
 
     @field_validator("repos", "exclude_repos")
@@ -92,6 +93,7 @@ class NotificationToggles(_Strict):
     re_review_requested: bool = True
     my_pr_status: bool = True
     ci_status: bool = True
+    replies: bool = False          # someone replied in a review thread I'm in, or @mentioned me
 
 
 class Settings(_Strict):
@@ -106,6 +108,7 @@ class Settings(_Strict):
     hide_empty_sections: bool = True
     max_title_length: int = Field(default=50, ge=10)
     read_tracking: bool = True         # fade PRs you've opened until there's new activity on them
+    reply_tracking: bool = True        # detect replies to my comments and @mentions (💬 marker)
     ignore_bot_reviews: bool = False   # don't count bot reviews for has_reviews_from_others
     # Reviewers whose reviews never count toward `approvals` or `has_reviews_from_others`
     ignored_reviewers: list[str] = Field(default_factory=list)

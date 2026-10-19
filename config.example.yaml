@@ -15,6 +15,7 @@ settings:
   hide_empty_sections: true       # in the menu bar dropdown
   max_title_length: 50            # truncation in the menu bar dropdown
   read_tracking: true             # fade PRs you've opened until there's new activity (see README "Read and unread")
+  reply_tracking: true            # 💬 marker when someone replies in your review threads or @mentions you
   ignore_bot_reviews: false       # if true, bot reviews (e.g. Copilot) don't count as "reviews from others"
   ignored_reviewers: []           # logins whose reviews never count toward approvals / has_reviews_from_others
   notifications:
@@ -22,6 +23,7 @@ settings:
     re_review_requested: true     # someone re-requests your review after you've reviewed
     my_pr_status: true            # your PR: review decision changes, new review, or new comment
     ci_status: true               # your PR: CI moves to success or failure
+    replies: false                # someone replies in a review thread you're in, or @mentions you
 
 defaults:
   # Every section searches these repos unless it sets its own `repos:`.
@@ -90,3 +92,11 @@ sections:
     filters:
       authors: ["@me"]
       draft: true
+
+  - name: Replies to Me
+    # Open PRs in your repos where someone answered you in a review thread or @mentioned you,
+    # and you haven't posted since. Last, so PRs already in another section stay there (with 💬).
+    notify: false     # reply notifications are controlled by settings.notifications.replies
+    badge: false      # replies never count toward the menu bar number
+    filters:
+      has_replies_to_me: true

@@ -187,7 +187,9 @@ if rumps is not None:
                     self.menu.add(rumps.MenuItem(f"{sec.name} ({len(sec.prs)})"))
                     for pr in sec.prs:
                         read = seen is not None and not store.is_unread(seen, pr, sec.name, inbox.me)
-                        segments = menu_style.pr_segments(pr, settings.max_title_length, read=read)
+                        reply = settings.reply_tracking and store.has_unread_reply(
+                            seen or {}, pr, settings.read_tracking)
+                        segments = menu_style.pr_segments(pr, settings.max_title_length, read=read, reply=reply)
                         item = rumps.MenuItem(menu_style.plain(segments), callback=self._open_pr)
                         item._prn_url = pr.url  # type: ignore[attr-defined]
                         item._prn_seen = (pr, sec.name)  # type: ignore[attr-defined]
