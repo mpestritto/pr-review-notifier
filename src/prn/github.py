@@ -72,7 +72,7 @@ def get_token() -> str:
 
 PR_FIELDS = """
 fragment PRFields on PullRequest {
-  id number title url isDraft createdAt updatedAt reviewDecision mergeable mergeStateStatus
+  id number title url isDraft createdAt updatedAt reviewDecision mergeable mergeStateStatus baseRefName
   repository { nameWithOwner }
   author { __typename login }
   labels(first: 20) { nodes { name } }
@@ -323,6 +323,7 @@ def parse_pr(node: dict, requested_from_me: bool = False) -> PR:
         mergeable=(node.get("mergeable") or "unknown").lower(),
         merge_state=(node.get("mergeStateStatus") or "unknown").lower(),
         head_oid=head.get("oid") or "",
+        base_ref=node.get("baseRefName") or "",
         ci=ci,
         labels=[l["name"] for l in (node.get("labels") or {}).get("nodes", []) if l],
         comment_count=(node.get("comments") or {}).get("totalCount", 0),

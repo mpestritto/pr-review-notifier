@@ -69,6 +69,7 @@ def node(
     title=None,
     mergeable="MERGEABLE",
     merge_state="BLOCKED",
+    base="main",
     head="head-sha",
 ):
     """Build a GraphQL-shaped PullRequest node."""
@@ -96,6 +97,7 @@ def node(
         "reviewDecision": decision,
         "mergeable": mergeable,
         "mergeStateStatus": merge_state,
+        "baseRefName": base,
         "repository": {"nameWithOwner": repo},
         "author": actor(author),
         "labels": {"nodes": [{"name": l} for l in labels]},

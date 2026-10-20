@@ -144,7 +144,7 @@ Empty sections are hidden (`hide_empty_sections`). Sections with `display: false
 
 ### The terminal inbox
 
-Run `prn` (or `pr-review-notifier`). Sections and PRs are on the left, with PRs you've already read muted. The selected PR's details are on the right: reviews, requested reviewers, approvals, CI, labels, your own review state, and any replies to you (with a link to the comment). Rows with an unseen reply end in 💬. The view updates by itself whenever the menu bar app polls.
+Run `prn` (or `pr-review-notifier`). Sections and PRs are on the left, with PRs you've already read muted. The selected PR's details are on the right: the base branch it merges into, reviews, requested reviewers, approvals, CI, labels, your own review state, and any replies to you (with a link to the comment). Rows with an unseen reply end in 💬. The view updates by itself whenever the menu bar app polls.
 
 | Key | Action |
 |---|---|
