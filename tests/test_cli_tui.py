@@ -14,7 +14,7 @@ runner = CliRunner()
 
 
 def seed_inbox(cfg):
-    prs = [parse_pr(node(author="alice", number=301, title="Teammate thing")),
+    prs = [parse_pr(node(author="alice", number=301, title="Teammate thing", base="release/2026-10")),
            parse_pr(node(author=ME, number=302, title="My thing", decision="APPROVED"))]
     store.write_inbox(evaluate(prs, cfg, ME), ME, next_poll_at=None)
 
@@ -68,6 +68,7 @@ def test_tui_renders_and_navigates(cfg):
             ol = tui.query_one("#list", OptionList)
             assert ol.option_count > 7
             assert tui._current_pr().number == 301
+            assert "Base:       release/2026-10" in str(tui.query_one("#detail", Static).render())
             await pilot.press("down")
             await pilot.pause()
             detail = str(tui.query_one("#detail", Static).render())

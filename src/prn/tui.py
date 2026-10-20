@@ -211,6 +211,8 @@ class PRNTui(App):
         t.append(f"{pr.title}\n\n", style="bold")
         t.append(f"{pr.repo}#{pr.number}\n", style="cyan")
         t.append(f"by @{pr.author}" + ("  (draft)" if pr.is_draft else "") + "\n\n")
+        if pr.base_ref:
+            t.append("Base:       ", style="dim"); t.append(f"{pr.base_ref}\n")
         t.append("Review:     ", style="dim"); t.append(fmt.DECISION_TEXT.get(pr.review_decision, pr.review_decision) + "\n")
         t.append("Approvals:  ", style="dim"); t.append(f"{pr.approvals()}\n")
         t.append("CI:         ", style="dim"); t.append(f"{pr.ci}\n", style=CI_STYLE.get(pr.ci, ""))

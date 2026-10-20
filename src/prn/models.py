@@ -48,6 +48,7 @@ class PR:
     mergeable: str = "unknown"               # mergeable | conflicting | unknown (GitHub may still be computing)
     merge_state: str = "unknown"             # GitHub mergeStateStatus: clean | has_hooks | unstable | blocked | behind | dirty | draft | unknown
     head_oid: str = ""                       # latest commit on the PR branch
+    base_ref: str = ""                       # branch the PR merges into
     labels: list[str] = field(default_factory=list)
     comment_count: int = 0
     recent_comment_authors: list[str] = field(default_factory=list)  # last 20, oldest first
